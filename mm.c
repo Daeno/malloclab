@@ -73,9 +73,39 @@ team_t team = {
 /* Caculate head_listp from mem_lo() */
 #define HEAD_LISTP    ( ((char *)mem_heap_lo() + DSIZE))
 /* private function to extend heap size*/
-static void *coalesce(char* bp)
+static void *coalesce(void* bp)
 {
-    return (void *)bp;
+    size_t prev_alloc = GET_ALLOC(FTRP(PREV_BLKP(bp)));
+    size_t next_alloc = GET_ALLOC(FTRP(PREV_BLKP(bp)));
+    size_t size = GET_SIZE(HDRP(bp));
+
+    if (prev_alloc && next_alloc) {
+        return bp;
+    }
+
+    else if (prev_alloc && !next_alloc) {
+        size += GET_SIZE(HDRP(NEXT_BLKP(bp)));
+        PUT(HDRP(bp), PACK(size, 0));
+        PUT(FTRP(bp), PACK(size, 0));
+    }
+
+    else if (!prev_alloc && next_alloc) {
+        size += GET_SIZE(HDRP(PREV_BLKP(bp)));
+        PUT(FTRP(bp), PACK(size, 0));
+        PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
+        bp = PREV_BLKP(bp);
+    }
+
+    else {
+        size += GET_SIZE(HDRP(NEXT_BLKP(bp))) + 
+                    GET_SIZE(HDRP(PREV_BLKP(bp)));
+        PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
+        PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));
+        bp = PREV_BLKP(bp);
+    }
+
+
+    return bp;
 }
 
 static void *extend_heap(size_t words)
@@ -136,8 +166,13 @@ void *mm_malloc(size_t size)
 /*
  * mm_free - Freeing a block does nothing.
  */
-void mm_free(void *ptr)
+void mm_free(void *bp)
 {
+    size_t size = GET_SIZE(HDRP(bp));
+
+    PUT(HDRP(bp), PACK(size,0));
+    PUT(FTRP(bp), PACK(size,0));
+    coalesce(bp);
 }
 
 /*
