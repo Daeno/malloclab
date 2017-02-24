@@ -73,14 +73,18 @@ team_t team = {
 /* Caculate head_listp from mem_lo() */
 #define HEAD_LISTP    ( ((char *)mem_heap_lo() + DSIZE))
 /* private function to extend heap size*/
+static void *coalesce(char* bp)
+{
+    return (void *)bp;
+}
+
 static void *extend_heap(size_t words)
 {
     char *bp;
     size_t size;
-    size = words * WSIZE
 
     /* Allocate an aligned number of words */
-    size_t newsize = ALIGN(size + SIZE_T_SIZE);
+    size = (word % 2) ? (word+1) * WSIZE : words * WSIZE;
     if((bp = mem_sbrk(size)) == (void *)-1)
         return NULL;
 
@@ -89,7 +93,7 @@ static void *extend_heap(size_t words)
     PUT(FTRP(bp), PACK(size, 0));
     PUT(HDRP(NEXT_BLKP(bp)), PACK(0, 1));
 
-    return (void *)bp;
+    return coalesce(bp);
 }
 
 /* 
