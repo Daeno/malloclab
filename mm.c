@@ -144,23 +144,54 @@ int mm_init(void)
     return 0;
 }
 
+static void place(void *bp, size_t asize)
+{
+    size_t o_size = GET_SIZE(HDRP(bp));
+    if (o_size < asize + 8) {
+        PUT(HDRP(bp), PACK(osize, 1));
+        PUT(FTRP(bp), PACK(osize, 1));
+    }
+
+    else {
+        PUT(HDRP(bp), PACK(asize, 1));
+        PUT(FTRP(bp), PACK(asize, 1));
+
+        /* This access method induced additional pointer operation */
+        void *nbp = NEXT_BLKP(bp);
+        PUT(HDRP(nbp), PACK(osize-asize, 0));
+        PUT(FTRP(nbp), PACK(osize-asize, 0));
+    }
+}
+
 /* 
  * mm_malloc - Allocate a block by incrementing the brk pointer.
  *     Always allocate a block whose size is a multiple of the alignment.
  */
 void *mm_malloc(size_t size)
 {
-    int newsize = ALIGN(size + SIZE_T_SIZE);
-    char *heap_listp = HEAP_LISTP;
+    size_t asize;
+    size_t extendsize;
+    char *bp;
 
+    if (size == 0)
+        return NULL;
 
-    void *p = mem_sbrk(newsize);
-    if (p == (void *)-1)
-	return NULL;
-    else {
-        *(size_t *)p = size;
-        return (void *)((char *)p + SIZE_T_SIZE);
+    if (size <= DSIZE)
+        asize = 2*DSIZE;
+    else
+        asize = ALIGN(size + SIZE_T_SIZE);
+
+    /* Search the free list for a fit */
+    if ((bp = find_fit(asize)) != NULL) {
+        place(bp, asize);
+        return bp;
     }
+
+    extendsize = MAX(asize,CHUNKSIZE);
+    if ((bp = extend_heap(extendsize/WSIZE)) == NULL)
+        return NULL;
+    place(bp, asize);
+    return bp;
 }
 
 /*
