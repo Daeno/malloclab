@@ -79,17 +79,17 @@ int mm_check(void)
     char *bp = HEAP_LISTP;
     int ctr = 0;
     while (GET_SIZE(HDRP(bp)) != 0) {
-        //printf("block #%d(0x%x): SZ:%6d; AL:%1d; HD:0x%x; FT: %x\n", ctr, (unsigned int)bp, GET_SIZE(HDRP(bp)), GET_ALLOC(HDRP(bp)), HDRP(bp), FTRP(bp));
+        fprintf(stderr, "block #%d(0x%x): SZ:%6d; AL:%1d; HD:0x%x; FT: %x\n", ctr, (unsigned int)bp, GET_SIZE(HDRP(bp)), GET_ALLOC(HDRP(bp)), HDRP(bp), FTRP(bp));
         bp = NEXT_BLKP(bp);
     }
-    //printf("\n");
+    fprintf(stderr, "\n");
     return 1;
 }
 
 /* private function to extend heap size*/
 static void *coalesce(void* bp)
 {
-    printf("coalesce(0x%x)\n", bp);
+    fprintf(stderr, "coalesce(0x%x)\n", bp);
     size_t prev_alloc = GET_ALLOC(FTRP(PREV_BLKP(bp)));
     size_t next_alloc = GET_ALLOC(HDRP(NEXT_BLKP(bp)));
     size_t size = GET_SIZE(HDRP(bp));
@@ -138,7 +138,7 @@ static void *extend_heap(size_t words)
     PUT(FTRP(bp), PACK(size, 0));
     PUT(HDRP(NEXT_BLKP(bp)), PACK(0, 1));
 
-    printf("extend_heap(%u)\n", words);
+    fprintf(stderr, "extend_heap(%u)\n", words);
     mm_check();
     return coalesce(bp);
 }
@@ -192,7 +192,7 @@ static void place(void *bp, size_t asize)
         PUT(HDRP(nbp), PACK(osize-asize, 0));
         PUT(FTRP(nbp), PACK(osize-asize, 0));
     }
-    printf("place(0x%x, %u)\n", bp, asize);
+    fprintf(stderr, "place(0x%x, %u)\n", bp, asize);
     mm_check();
 }
 
@@ -236,7 +236,7 @@ void mm_free(void *bp)
 
     PUT(HDRP(bp), PACK(size,0));
     PUT(FTRP(bp), PACK(size,0));
-    printf("free(0x%x)\n", bp);
+    fprintf(stderr, "free(0x%x)\n", bp);
     mm_check();
     coalesce(bp);
 }
